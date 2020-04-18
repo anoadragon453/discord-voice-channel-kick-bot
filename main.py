@@ -38,6 +38,10 @@ async def start_a_tour():
             # Then check if the random number is less than or equal to 20.
             # If so, the user is kicked!
             for victim_user_id, percentage in targeted_victims:
+                # Check that this user is currently in the voice channel
+                if voice_channel.guild.get_member(victim_user_id) not in voice_channel.members:
+                    continue
+
                 random_int = random.randint(0, 101)
 
                 if random_int <= percentage * 100:
