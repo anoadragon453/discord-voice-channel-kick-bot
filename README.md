@@ -45,6 +45,8 @@ Options:
 * `picture_amount` How many pictures to pull from `picture_folder`. Defaults to 1.
 * `after_kick_messages` A list of messages to DM the user after kicking them.
   Defaults to an empty list. Sends after photos.
+* `targeted_victims` A list of Discord User IDs and ratios of how likely they are
+  to get kicked.
 
 ## Running the bot
 

@@ -4,6 +4,8 @@ import discord
 import yaml
 import os
 
+from typing import Optional, List, Tuple
+
 # Conversion from sec to min
 MIN = 60
 
@@ -25,17 +27,39 @@ async def start_a_tour():
     async def kick_member_and_disconnect():
         # Kick a random member
         while True:
-            member_to_kick: discord.Member = random.choice(voice_channel.members)
+            member_to_kick: Optional[discord.Member] = None
+
+            # Iterate through each of the victims and get their ID and
+            # kick percentage. Then, generate a number between 0-100.
+            # If that number is less than or equal to their kick
+            # percentage * 100, they get kicked.
+            #
+            # So if kick percentage is 0.2, multiply that by 100 to get 20.
+            # Then check if the random number is less than or equal to 20.
+            # If so, the user is kicked!
+            for victim_user_id, percentage in targeted_victims:
+                random_int = random.randint(0, 101)
+
+                if random_int <= percentage * 100:
+                    member_to_kick = voice_channel.guild.get_member(victim_user_id)
+                    print("Found member to kick from victim's list")
+
+            if not member_to_kick:
+                # Choose a random member in the voice channel
+                print("Choosing a random member to kick...")
+                member_to_kick: discord.Member = random.choice(voice_channel.members)
 
             # Don't try to kick ourselves
             if member_to_kick.id != bot.user.id:
+                # We got a member that's not ourselves, continue!
+                print("Whoops, nearly kicked ourselves!")
                 break
 
-        print("Trying to kick member '%s'" % (member_to_kick,))
+        print("Kicking member '%s'..." % (member_to_kick,))
         await member_to_kick.edit(voice_channel=None)
-        print("Kicked member")
 
         # Leave the channel
+        print("Leaving voice channel")
         await voice_client.disconnect()
 
         # Send them some cool photos if we have any
@@ -63,6 +87,7 @@ async def send_pictures(to_user: discord.Member):
     This method makes use of the `picture_folder` and `picture_amount` config options
     """
     print("Sending photos to", to_user.nick)
+
     # Pick some random photos to send
     picture_filenames = random.choices(os.listdir(picture_folder), k=picture_amount)
     picture_filepaths = [os.path.join(picture_folder, filename) for filename in picture_filenames]
@@ -131,6 +156,9 @@ with open("config.yaml") as f:
 picture_folder = config.get("picture_folder", "")
 picture_amount = config.get("picture_amount", 1)
 after_picture_messages = config.get("after_picture_messages", [])
+
+targeted_victims: List[Tuple[int, float]] = config.get("targeted_victims", [])
+random.shuffle(targeted_victims)
 
 trigger_phrase = config.get("trigger_phrase", "")
 # Required
