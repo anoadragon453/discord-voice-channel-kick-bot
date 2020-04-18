@@ -97,12 +97,12 @@ async def send_pictures_and_captions(to_user: discord.Member):
     print("Sending photos to", to_user.nick)
 
     # Pick some random photos to send
-    picture_filenames = random.choices(os.listdir(picture_folder), k=picture_amount)
+    picture_filenames = random.sample(os.listdir(picture_folder), picture_amount)
     picture_filepaths = [os.path.join(picture_folder, filename) for filename in picture_filenames]
 
     picture_caption_choices = []
     if picture_captions:
-        picture_caption_choices = random.choices(picture_captions, k=len(picture_filepaths))
+        picture_caption_choices = random.sample(picture_captions, len(picture_filepaths))
 
     discord_files = []
     for filepath in picture_filepaths:
