@@ -6,6 +6,9 @@
 pics/
 pictures/
 
+# Archives
+*.tgz
+
 # Config files
 config.yaml
 
