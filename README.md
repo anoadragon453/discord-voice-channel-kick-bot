@@ -12,26 +12,32 @@ been sent to make it difficult for others to determine what the command is.
 
 ## Setting Up
 
-Copy `sample.config.yaml` to `config.yaml` and edit to your desire.
+### Dependencies
 
-Options:
+You need to have [ffmpeg](https://ffmpeg.org/) installed on your system.
 
-* `bot_token` **Required.** Your Discord bot token.
-* `allowed_command_user_ids` **REQUIRED.** The Discord numberical IDs of the
-  users who are allowed to execute bot commands.
-* `audio_clip_filepath` **REQUIRED.** The path to the audio file to play before
-  kicking a user.
-* `trigger_phrase` If a user that's allowed to execute commands says this
-  phrase, the bot will join a voice channel and kick a user. The phrase is
-  case-insensitive.
-
-Then create a python environment and install the required dependencies:
+Then create a python environment and install the required python modules:
 
 ```
 python -m virtualenv -p python3 env
 source env/bin/activate
 pip install -r requirements.txt
 ```
+
+### Config
+
+Copy `sample.config.yaml` to `config.yaml` and edit to your desire.
+
+Options:
+
+* `bot_token` **Required.** Your Discord bot token.
+* `allowed_command_user_ids` **Required.** The Discord numberical IDs of the
+  users who are allowed to execute bot commands.
+* `audio_clip_filepath` **Required.** The path to the audio file to play before
+  kicking a user.
+* `trigger_phrase` If a user that's allowed to execute commands says this
+  phrase, the bot will join a voice channel and kick a user. The phrase is
+  case-insensitive.
 
 ## Running the bot
 
