@@ -1,0 +1,16 @@
+# The Discord bot token
+bot_token: ""
+
+# Trigger phrase (case-insensitive)
+#
+# If one of the users defined in allowed_command_user_ids says this phrase
+# exactly (case-insensitive), then the bot will activate
+#
+# If an empty string or not defined, triggering will be disabled
+trigger_phrase: "let's fly to the castle"
+
+# The Discord User IDs that are allowed to run bot commands
+allowed_command_user_ids: []
+
+# The path to the audio clip to play before kicking a user
+audio_clip_filepath: "audio.mp3"

@@ -1,0 +1,17 @@
+# IDE files
+.idea/
+.vscode/
+
+# Config files
+config.yaml
+
+# Python environments
+env/
+venv/
+
+# Audio filetypes
+*.ogg
+*.opus
+*.wav
+*.mp3
+*.m4a
