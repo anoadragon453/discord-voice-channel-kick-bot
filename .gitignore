@@ -2,6 +2,10 @@
 .idea/
 .vscode/
 
+# Picture folder
+pics/
+pictures/
+
 # Config files
 config.yaml
 

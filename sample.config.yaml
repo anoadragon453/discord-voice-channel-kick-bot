@@ -14,3 +14,12 @@ allowed_command_user_ids: []
 
 # The path to the audio clip to play before kicking a user
 audio_clip_filepath: "audio.mp3"
+
+# If the path to a folder of pictures is provided
+# The bot will send `picture_amount` pictures to a user after
+# kicking them
+picture_folder: ""
+picture_amount: 1
+# A list of messages to send to the user after the photos
+# If no messages are provided, none will be sent
+after_picture_messages: []

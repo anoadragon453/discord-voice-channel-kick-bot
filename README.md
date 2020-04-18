@@ -4,6 +4,8 @@ This bot will every so often join a random voice channel that it can see, play
 an audio file, and kick a random user from said voice channel. Then leaves the
 voice channel.
 
+It can optionally send messages to the kicked user in a DM afterwards.
+
 This is very useful I swear.
 
 Can also be activated on command with a secret word that can only be executed
@@ -38,6 +40,11 @@ Options:
 * `trigger_phrase` If a user that's allowed to execute commands says this
   phrase, the bot will join a voice channel and kick a user. The phrase is
   case-insensitive.
+* `picture_folder` Folder of pictures to send to the kicked user afterwards in
+  a DM. If empty or not defined, the bot will not DM any pictures.
+* `picture_amount` How many pictures to pull from `picture_folder`. Defaults to 1.
+* `after_kick_messages` A list of messages to DM the user after kicking them.
+  Defaults to an empty list. Sends after photos.
 
 ## Running the bot
 
