@@ -20,6 +20,19 @@ audio_clip_filepath: "audio.mp3"
 # kicking them
 picture_folder: ""
 picture_amount: 1
+
+# Random captions that could appear under each image sent
+# If none are specified, captions will not be added
+picture_captions: []
+
+# A list of messages to send to the user before the photos
+# If no messages are provided, none will be sent
+before_picture_messages: []
+
+# Amount of seconds to delay between sending each picture/caption combo
+# Defaults to 0
+between_picture_delay: 0
+
 # A list of messages to send to the user after the photos
 # If no messages are provided, none will be sent
 after_picture_messages: []

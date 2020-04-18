@@ -66,13 +66,15 @@ async def start_a_tour():
         print("Leaving voice channel")
         await voice_client.disconnect()
 
+        # Announce that the tour is beginning
+
         # Send them some cool photos if we have any
         if picture_folder:
-            await send_pictures(member_to_kick)
+            await send_pictures_and_captions(member_to_kick)
 
-        for message in after_picture_messages:
-            print("Sending message to", member_to_kick.nick, message)
-            await member_to_kick.dm_channel.send(message)
+            for message in after_picture_messages:
+                print("Sending message to", member_to_kick.nick, message)
+                await member_to_kick.dm_channel.send(message)
 
     def after_play(e):
         # We have to hook into asyncio here as voice_client.play
@@ -85,16 +87,21 @@ async def start_a_tour():
     voice_client.play(discord.FFmpegPCMAudio(audio_clip_filepath), after=after_play)
 
 
-async def send_pictures(to_user: discord.Member):
-    """Send some photos from the configured picture folder to the specified user
+async def send_pictures_and_captions(to_user: discord.Member):
+    """Send some photos from the configured picture folder with captions to the specified user
 
-    This method makes use of the `picture_folder` and `picture_amount` config options
+    This method makes use of the `picture_folder`, `picture_amount` and
+    `picture_captions` config options
     """
     print("Sending photos to", to_user.nick)
 
     # Pick some random photos to send
     picture_filenames = random.choices(os.listdir(picture_folder), k=picture_amount)
     picture_filepaths = [os.path.join(picture_folder, filename) for filename in picture_filenames]
+
+    picture_caption_choices = []
+    if picture_captions:
+        picture_caption_choices = random.choices(picture_captions, k=len(picture_filepaths))
 
     discord_files = []
     for filepath in picture_filepaths:
@@ -103,7 +110,25 @@ async def send_pictures(to_user: discord.Member):
     if to_user.dm_channel is None:
         await to_user.create_dm()
 
-    await to_user.dm_channel.send(files=discord_files)
+    for message in before_picture_messages:
+        print("Sending messages:", before_picture_messages)
+        await to_user.dm_channel.send(message)
+
+    for index, file in enumerate(discord_files):
+        # Send the image
+        print("Sending photo", file.filename)
+        await to_user.dm_channel.send(file=file)
+
+        # Optionally, send a random caption
+        if picture_captions:
+            caption = picture_caption_choices[index]
+            print("Sending caption:", caption)
+            await to_user.dm_channel.send(caption)
+
+        # Optionally delay between sending each image
+        # Don't delay after sending the last image
+        if index != len(discord_files) - 1:
+            await asyncio.sleep(between_picture_delay)
 
 
 async def retrieve_active_voice_channel():
@@ -159,7 +184,10 @@ with open("config.yaml") as f:
 # Config options
 picture_folder = config.get("picture_folder", "")
 picture_amount = config.get("picture_amount", 1)
+picture_captions = config.get("picture_captions", [])
+before_picture_messages = config.get("before_picture_messages", [])
 after_picture_messages = config.get("after_picture_messages", [])
+between_picture_delay = config.get("between_picture_delay", 0)
 
 targeted_victims: List[Tuple[int, float]] = config.get("targeted_victims", [])
 random.shuffle(targeted_victims)
