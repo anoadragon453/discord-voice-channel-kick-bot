@@ -40,6 +40,10 @@ Options:
 * `trigger_phrase` If a user that's allowed to execute commands says this
   phrase, the bot will join a voice channel and kick a user. The phrase is
   case-insensitive.
+* `trigger_sleep_min` Minimum seconds to wait before kicking a user after the
+trigger phrase has been said.
+* `trigger_sleep_max` Maximum seconds to wait before kicking a user after the
+trigger phrase has been said.
 * `picture_folder` Folder of pictures to send to the kicked user afterwards in
   a DM. If empty or not defined, the bot will not DM any pictures.
 * `picture_amount` How many pictures to pull from `picture_folder`. Defaults to 1.

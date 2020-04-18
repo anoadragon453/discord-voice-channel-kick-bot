@@ -158,7 +158,7 @@ async def on_message(message):
 
         # Wait a random amount of time
         # (for sam to get online)
-        sleep_amount = random.randint(20, 60)
+        sleep_amount = random.randint(trigger_sleep_min, trigger_sleep_max)
         print("Trigger phrase ACTIVATED! Waiting %d seconds..." % (sleep_amount,))
         await asyncio.sleep(sleep_amount)
 
@@ -193,10 +193,10 @@ between_picture_delay = config.get("between_picture_delay", 0)
 targeted_victims: List[Tuple[int, float]] = config.get("targeted_victims", [])
 
 trigger_phrase = config.get("trigger_phrase", "")
-# Required
+trigger_sleep_min = config.get("trigger_sleep_min", 0)
+trigger_sleep_max = config.get("trigger_sleep_max", 0)
 allowed_command_user_ids = config["allowed_command_user_ids"]
 
-# Required
 audio_clip_filepath = config["audio_clip_filepath"]
 
 bot.run(config["bot_token"])

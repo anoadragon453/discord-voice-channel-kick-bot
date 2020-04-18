@@ -9,6 +9,13 @@ bot_token: ""
 # If an empty string or not defined, triggering will be disabled
 trigger_phrase: "let's fly to the castle"
 
+# Minimum amount of seconds to wait before kicking, after the trigger
+# command has been said. Defaults to 0
+trigger_sleep_min: 0
+# Maximum amount of seconds to wait before kicking, after the trigger
+# command has been said. Defaults to 0
+trigger_sleep_max: 0
+
 # The Discord User IDs that are allowed to run bot commands
 allowed_command_user_ids: []
 
