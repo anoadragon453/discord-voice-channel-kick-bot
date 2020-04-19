@@ -12,7 +12,7 @@ MIN = 60
 bot = discord.Client()
 
 
-async def start_a_tour():
+async def start_a_tour(audio_filepath):
     """Starts a tour!
 
     Joins an active voice channel, plays the clip, kicks a random user
@@ -85,7 +85,20 @@ async def start_a_tour():
 
     # Play the audio
     # Runs `after_play` when audio has finished playing
-    voice_client.play(discord.FFmpegPCMAudio(audio_clip_filepath), after=after_play)
+    voice_client.play(discord.FFmpegPCMAudio(audio_filepath), after=after_play)
+
+
+async def dm_file_to_user(filepath: str, user: discord.Member):
+    """DMs a file at a given filepath to a user"""
+    # Get a discord.File of the given file
+    file = discord.File(filepath)
+
+    # Check that we have a DM with this user
+    if user.dm_channel is None:
+        await user.create_dm()
+
+    # Send the file
+    await user.dm_channel.send(file=file)
 
 
 async def send_pictures_and_captions(to_user: discord.Member):
@@ -104,21 +117,22 @@ async def send_pictures_and_captions(to_user: discord.Member):
     if picture_captions:
         picture_caption_choices = random.sample(picture_captions, len(picture_filepaths))
 
-    discord_files = []
-    for filepath in picture_filepaths:
-        discord_files.append(discord.File(filepath))
-
-    if to_user.dm_channel is None:
-        await to_user.create_dm()
-
     for message in before_picture_messages:
         print("Sending messages:", before_picture_messages)
-        await to_user.dm_channel.send(message)
+        # Check if this is supposed to be a file
+        if message.startswith("file:"):
+            # Remove the "file:" bit from the filepath
+            filepath = message[5:]
 
-    for index, file in enumerate(discord_files):
+            # Send the file
+            await dm_file_to_user(filepath, to_user)
+        else:
+            await to_user.dm_channel.send(message)
+
+    for index, filepath in enumerate(picture_filepaths):
         # Send the image
-        print("Sending photo", file.filename)
-        await to_user.dm_channel.send(file=file)
+        print("Sending photo", filepath)
+        await dm_file_to_user(filepath, to_user)
 
         # Optionally, send a random caption
         if picture_captions:
@@ -128,7 +142,7 @@ async def send_pictures_and_captions(to_user: discord.Member):
 
         # Optionally delay between sending each image
         # Don't delay after sending the last image
-        if index != len(discord_files) - 1:
+        if index != len(picture_filepaths) - 1:
             await asyncio.sleep(between_picture_delay)
 
 
@@ -151,7 +165,8 @@ async def retrieve_active_voice_channel():
 # Text command to have bot join channel
 @bot.event
 async def on_message(message):
-    if trigger_phrase and message.content.lower() == trigger_phrase.lower():
+    msg = message.content.lower()
+    if msg in triggers.keys():
         if message.author.id not in allowed_command_user_ids:
             print("Rejecting non-authorized author id %d" % message.author.id)
             return
@@ -164,7 +179,7 @@ async def on_message(message):
 
         # Try to kick a user from a channel
         print("Triggered!")
-        await start_a_tour()
+        await start_a_tour(triggers[msg])
 
 
 @bot.event
@@ -174,7 +189,7 @@ async def on_ready():
         await asyncio.sleep(random.randint(20 * MIN, 60 * MIN))
 
         # Try to kick a user from a channel
-        await start_a_tour()
+        await start_a_tour(default_audio_clip)
 
 print("Connected and logged in. Here I come!")
 
@@ -197,6 +212,7 @@ trigger_sleep_min = config.get("trigger_sleep_min", 0)
 trigger_sleep_max = config.get("trigger_sleep_max", 0)
 allowed_command_user_ids = config["allowed_command_user_ids"]
 
-audio_clip_filepath = config["audio_clip_filepath"]
+triggers = config["triggers"]
+default_audio_clip = config["default_audio_clip"]
 
 bot.run(config["bot_token"])
