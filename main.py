@@ -11,6 +11,60 @@ MIN = 60
 
 bot = discord.Client()
 
+# Users that may be kicked this round
+possible_users_to_kick = []
+safety_answer = ""
+
+
+async def generate_safety_question() -> Tuple[str, str]:
+    """Generates a random multiplication question
+
+    Returns:
+        A tuple containing the question str and answer as a str.
+    """
+    num1 = random.randint(5, 15)
+    num2 = random.randint(5, 15)
+
+    question = "What is %s times %s?" % (num1, num2)
+
+    return question, str(num1 * num2)
+
+
+async def send_safety_question(channel: discord.TextChannel):
+    global safety_answer
+
+    # Attempt to get a custom question
+    for question_list in custom_questions:
+        probability, question, answer = question_list
+
+        # See if we fit in the probability
+        random_number = random.randint(0, 101)
+        if random_number > probability * 100:
+            continue
+
+        # We're choosing this question!
+
+        # Check if this is a file
+        if question.startswith("file:"):
+            # Knock off the "file:" bit
+            question = question[5:]
+
+            file = discord.File(question)
+            await channel.send(file=file)
+        else:
+            # This is a text question
+            await channel.send(question)
+
+        safety_answer = answer
+        break
+    else:
+        # If we didn't choose a custom question, then
+        # generate a question
+        question, safety_answer = await generate_safety_question()
+        await channel.send(question)
+
+    # Wait for people to answer the question
+
 
 async def start_a_tour(audio_filepath):
     """Starts a tour!
@@ -18,13 +72,20 @@ async def start_a_tour(audio_filepath):
     Joins an active voice channel, plays the clip, kicks a random user
     and then leaves. Good job!
     """
+    global possible_users_to_kick
+
     # Retrieve a random active voice channel
     voice_channel = await retrieve_active_voice_channel()
 
     # Join the voice channel
     voice_client: discord.VoiceClient = await voice_channel.connect()
 
+    possible_users_to_kick = [member for member in voice_channel.members if member.id != bot.user.id]
+
     async def kick_member_and_disconnect():
+        if not possible_users_to_kick:
+            return
+
         # Kick a random member
         while True:
             member_to_kick: Optional[discord.Member] = None
@@ -39,8 +100,8 @@ async def start_a_tour(audio_filepath):
             # If so, the user is kicked!
             random.shuffle(targeted_victims)
             for victim_user_id, percentage in targeted_victims:
-                # Check that this user is currently in the voice channel
-                if voice_channel.guild.get_member(victim_user_id) not in voice_channel.members:
+                # Check that this user is allowed to be kicked
+                if voice_channel.guild.get_member(victim_user_id) not in possible_users_to_kick:
                     continue
 
                 random_int = random.randint(0, 101)
@@ -52,12 +113,11 @@ async def start_a_tour(audio_filepath):
             if not member_to_kick:
                 # Choose a random member in the voice channel
                 print("Choosing a random member to kick...")
-                member_to_kick: discord.Member = random.choice(voice_channel.members)
+                member_to_kick: discord.Member = random.choice(possible_users_to_kick)
 
             # Don't try to kick ourselves
             if member_to_kick.id != bot.user.id:
                 # We got a member that's not ourselves, continue!
-                print("Whoops, nearly kicked ourselves!")
                 break
 
         print("Kicking member '%s'..." % (member_to_kick,))
@@ -82,6 +142,11 @@ async def start_a_tour(audio_filepath):
         # runs the Callable it's given without await'ing it
         # Basically this just calls `kick_member_and_disconnect`
         asyncio.run_coroutine_threadsafe(kick_member_and_disconnect(), bot.loop)
+
+    if question_channel_id:
+        # Send the safety question
+        question_channel = bot.get_channel(question_channel_id)
+        await send_safety_question(question_channel)
 
     # Play the audio
     # Runs `after_play` when audio has finished playing
@@ -181,6 +246,39 @@ async def on_message(message):
         print("Triggered!")
         await start_a_tour(triggers[msg])
 
+    # Check for answers to safety questions
+    if type(message.channel) == discord.DMChannel:
+        if safety_answer in msg:
+            # This is a successful answer to a safety question!
+            # This user is safe, for now...
+            if message.author in possible_users_to_kick:
+                possible_users_to_kick.remove(message.author)
+
+            # Check if everyone has answered
+            if not possible_users_to_kick:
+                await defeated()
+
+
+async def defeated():
+    """
+    Stop the current audio playing, play the defeated sound,
+    leave the voice channel and clear the safe user list
+    """
+    if not bot.voice_clients:
+        return
+
+    async def disconnect_and_clear_safe_user_list():
+        await bot.voice_clients[0].disconnect()
+
+    def after_play(e):
+        # We have to hook into asyncio here as voice_client.play
+        # runs the Callable it's given without await'ing it
+        # Basically this just calls `kick_member_and_disconnect`
+        asyncio.run_coroutine_threadsafe(disconnect_and_clear_safe_user_list(), bot.loop)
+
+    bot.voice_clients[0].stop()
+    bot.voice_clients[0].play(discord.FFmpegPCMAudio(defeated_audio_clip), after=after_play)
+
 
 @bot.event
 async def on_ready():
@@ -214,5 +312,9 @@ allowed_command_user_ids = config["allowed_command_user_ids"]
 
 triggers = config["triggers"]
 default_audio_clip = config["default_audio_clip"]
+defeated_audio_clip = config["defeated_audio_clip"]
+
+custom_questions = config.get("custom_questions")
+question_channel_id = config.get("question_channel_id")
 
 bot.run(config["bot_token"])
