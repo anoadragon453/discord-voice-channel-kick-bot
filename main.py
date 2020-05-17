@@ -63,6 +63,9 @@ async def send_safety_question(channel: discord.TextChannel):
         question, safety_answer = await generate_safety_question()
         await channel.send(question)
 
+    # Instruct people to DM the bot
+    await channel.send("DM me the correct answer or it's tour time buddy")
+
     # Wait for people to answer the question
 
 
@@ -76,6 +79,8 @@ async def start_a_tour(audio_filepath):
 
     # Retrieve a random active voice channel
     voice_channel = await retrieve_active_voice_channel()
+    if not voice_channel:
+        return
 
     # Join the voice channel
     voice_client: discord.VoiceClient = await voice_channel.connect()
@@ -172,7 +177,7 @@ async def send_pictures_and_captions(to_user: discord.Member):
     This method makes use of the `picture_folder`, `picture_amount` and
     `picture_captions` config options
     """
-    print("Sending photos to", to_user.nick)
+    print("Sending photos to", to_user.display_name)
 
     # Pick some random photos to send
     picture_filenames = random.sample(os.listdir(picture_folder), picture_amount)
