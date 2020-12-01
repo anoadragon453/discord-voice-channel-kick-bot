@@ -9,7 +9,9 @@ from typing import Optional, List, Tuple
 # Conversion from sec to min
 MIN = 60
 
-bot = discord.Client()
+intents = discord.Intents.default()
+intents.members = True
+bot = discord.Client(intents=intents)
 
 # Users that may be kicked this round
 possible_users_to_kick = []
@@ -80,6 +82,7 @@ async def start_a_tour(audio_filepath):
     # Retrieve a random active voice channel
     voice_channel = await retrieve_active_voice_channel()
     if not voice_channel:
+        print("Couldn't find an active voice channel, exiting")
         return
 
     # Join the voice channel
@@ -89,6 +92,7 @@ async def start_a_tour(audio_filepath):
 
     async def kick_member_and_disconnect():
         if not possible_users_to_kick:
+            print("Didn't find any possible users to kick")
             return
 
         # Kick a random member
@@ -218,6 +222,8 @@ async def send_pictures_and_captions(to_user: discord.Member):
 
 async def retrieve_active_voice_channel():
     """Scans all active voice channels the bot can see and returns a random one"""
+    print("Trying to get active voice channel")
+
     # Get all channels the bot can see
     channels = [c for c in bot.get_all_channels()]
 
@@ -227,8 +233,10 @@ async def retrieve_active_voice_channel():
     # Check if each channel is a VoiceChannel with active members
     for channel in channels:
         if isinstance(channel, discord.VoiceChannel):
+            print("Found VC: %s, %s" % (channel, channel.members))
             if len(channel.members) > 0:
                 # We found an active voice channel!
+                print("Returning active voice channel")
                 return channel
 
 
