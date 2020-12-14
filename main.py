@@ -7,14 +7,32 @@ import os
 from typing import Optional, List, Tuple
 from discord.errors import ClientException
 
-tour_running = False
-
-# Users that may be kicked this round
-possible_users_to_kick = []
-safety_answer = ""
-
 # Conversion from sec to min
 MIN = 60
+
+
+class Settings:
+    def __init__(self):
+        # Default settings
+
+        # Whether to randomly pop into chats every so often
+        self.random_tour_enabled = True
+
+
+class Globals:
+    def __init__(self):
+        # Whether a tour is currently running
+        self.tour_running = False
+
+        # Users that may be kicked this round
+        self.possible_users_to_kick = []
+
+        # The answer to the current safety question
+        self.safety_answer = ""
+
+
+SETTINGS = Settings()
+GLOBALS = Globals()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -36,8 +54,6 @@ async def generate_safety_question() -> Tuple[str, str]:
 
 
 async def send_safety_question(channel: discord.TextChannel):
-    global safety_answer
-
     # Attempt to get a custom question
     for question_list in custom_questions:
         probability, question, answer = question_list
@@ -60,12 +76,12 @@ async def send_safety_question(channel: discord.TextChannel):
             # This is a text question
             await channel.send(question)
 
-        safety_answer = answer
+        GLOBALS.safety_answer = answer
         break
     else:
         # If we didn't choose a custom question, then
         # generate a question
-        question, safety_answer = await generate_safety_question()
+        question, GLOBALS.safety_answer = await generate_safety_question()
         await channel.send(question)
 
     # Instruct people to DM the bot
@@ -80,14 +96,11 @@ async def start_a_tour(audio_filepath):
     Joins an active voice channel, plays the clip, kicks a random user
     and then leaves. Good job!
     """
-    global possible_users_to_kick
-    global tour_running
-
-    if tour_running:
+    if GLOBALS.tour_running:
         print("Tour already running, bailing out")
         return
 
-    tour_running = True
+    GLOBALS.tour_running = True
 
     # Retrieve a random active voice channel
     voice_channel = await retrieve_active_voice_channel()
@@ -102,10 +115,11 @@ async def start_a_tour(audio_filepath):
         print("Unable to connect to voice channel:", e)
         return
 
-    possible_users_to_kick = [member for member in voice_channel.members if member.id != bot.user.id]
+    GLOBALS.possible_users_to_kick = [member for member in voice_channel.members if
+                                   member.id != bot.user.id]
 
     async def kick_member_and_disconnect():
-        if not possible_users_to_kick:
+        if not GLOBALS.possible_users_to_kick:
             print("Didn't find any possible users to kick")
             return
 
@@ -124,7 +138,10 @@ async def start_a_tour(audio_filepath):
             random.shuffle(targeted_victims)
             for victim_user_id, percentage in targeted_victims:
                 # Check that this user is allowed to be kicked
-                if voice_channel.guild.get_member(victim_user_id) not in possible_users_to_kick:
+                if (
+                        voice_channel.guild.get_member(victim_user_id) not in
+                        GLOBALS.possible_users_to_kick
+                ):
                     continue
 
                 random_int = random.randint(0, 101)
@@ -136,7 +153,9 @@ async def start_a_tour(audio_filepath):
             if not member_to_kick:
                 # Choose a random member in the voice channel
                 print("Choosing a random member to kick...")
-                member_to_kick: discord.Member = random.choice(possible_users_to_kick)
+                member_to_kick: discord.Member = random.choice(
+                    GLOBALS.possible_users_to_kick
+                )
 
             # Don't try to kick ourselves
             if member_to_kick.id != bot.user.id:
@@ -255,11 +274,10 @@ async def retrieve_active_voice_channel():
 
     print("Unable to find active VC, dying")
 
+
 # Text command to have bot join channel
 @bot.event
-async def on_message(message):
-    global tour_running
-
+async def on_message(message: discord.Message):
     msg = message.content.lower()
     if msg in triggers.keys():
         if message.author.id not in allowed_command_user_ids:
@@ -275,19 +293,38 @@ async def on_message(message):
         # Try to kick a user from a channel
         print("Triggered!")
         await start_a_tour(triggers[msg])
-        tour_running = False
+        GLOBALS.tour_running = False
 
     # Check for answers to safety questions
     if type(message.channel) == discord.DMChannel:
-        if safety_answer in msg:
+        if GLOBALS.safety_answer in msg:
             # This is a successful answer to a safety question!
             # This user is safe, for now...
-            if message.author in possible_users_to_kick:
-                possible_users_to_kick.remove(message.author)
+            if message.author in GLOBALS.possible_users_to_kick:
+                GLOBALS.possible_users_to_kick.remove(message.author)
 
             # Check if everyone has answered
-            if not possible_users_to_kick:
+            if not GLOBALS.possible_users_to_kick:
                 await defeated()
+
+    # Check for commands
+    await on_cmd(message)
+
+
+async def on_cmd(message: discord.Message):
+    """Bot commands unrelated to triggering a new tour
+
+    Args:
+        message: The message
+    """
+    cmd = message.content.lower()
+
+    if cmd == "pause random":
+        SETTINGS.random_tour_enabled = False
+        await message.channel.send("Random tours disabled")
+    elif cmd == "start random":
+        SETTINGS.random_tour_enabled = True
+        await message.channel.send("Random tours enabled")
 
 
 async def defeated():
@@ -313,15 +350,17 @@ async def defeated():
 
 @bot.event
 async def on_ready():
-    global tour_running
-
     while True:
+        # Don't start a random tour if this feature is disabled
+        if not SETTINGS.random_tour_enabled:
+            continue
+
         # Start the scheduler for a random time
         await asyncio.sleep(random.randint(20 * MIN, 60 * MIN))
 
         # Try to kick a user from a channel
         await start_a_tour(default_audio_clip)
-        tour_running = False
+        GLOBALS.tour_running = False
 
 print("Connected and logged in. Here I come!")
 
