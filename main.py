@@ -5,6 +5,13 @@ import yaml
 import os
 
 from typing import Optional, List, Tuple
+from discord.errors import ClientException
+
+tour_running = False
+
+# Users that may be kicked this round
+possible_users_to_kick = []
+safety_answer = ""
 
 # Conversion from sec to min
 MIN = 60
@@ -12,10 +19,6 @@ MIN = 60
 intents = discord.Intents.default()
 intents.members = True
 bot = discord.Client(intents=intents)
-
-# Users that may be kicked this round
-possible_users_to_kick = []
-safety_answer = ""
 
 
 async def generate_safety_question() -> Tuple[str, str]:
@@ -78,6 +81,13 @@ async def start_a_tour(audio_filepath):
     and then leaves. Good job!
     """
     global possible_users_to_kick
+    global tour_running
+
+    if tour_running:
+        print("Tour already running, bailing out")
+        return
+
+    tour_running = True
 
     # Retrieve a random active voice channel
     voice_channel = await retrieve_active_voice_channel()
@@ -86,7 +96,11 @@ async def start_a_tour(audio_filepath):
         return
 
     # Join the voice channel
-    voice_client: discord.VoiceClient = await voice_channel.connect()
+    try:
+        voice_client: discord.VoiceClient = await voice_channel.connect()
+    except ClientException as e:
+        print("Unable to connect to voice channel:", e)
+        return
 
     possible_users_to_kick = [member for member in voice_channel.members if member.id != bot.user.id]
 
@@ -239,10 +253,13 @@ async def retrieve_active_voice_channel():
                 print("Returning active voice channel")
                 return channel
 
+    print("Unable to find active VC, dying")
 
 # Text command to have bot join channel
 @bot.event
 async def on_message(message):
+    global tour_running
+
     msg = message.content.lower()
     if msg in triggers.keys():
         if message.author.id not in allowed_command_user_ids:
@@ -258,6 +275,7 @@ async def on_message(message):
         # Try to kick a user from a channel
         print("Triggered!")
         await start_a_tour(triggers[msg])
+        tour_running = False
 
     # Check for answers to safety questions
     if type(message.channel) == discord.DMChannel:
@@ -295,12 +313,15 @@ async def defeated():
 
 @bot.event
 async def on_ready():
+    global tour_running
+
     while True:
         # Start the scheduler for a random time
         await asyncio.sleep(random.randint(20 * MIN, 60 * MIN))
 
         # Try to kick a user from a channel
         await start_a_tour(default_audio_clip)
+        tour_running = False
 
 print("Connected and logged in. Here I come!")
 
@@ -318,12 +339,11 @@ between_picture_delay = config.get("between_picture_delay", 0)
 
 targeted_victims: List[Tuple[int, float]] = config.get("targeted_victims", [])
 
-trigger_phrase = config.get("trigger_phrase", "")
 trigger_sleep_min = config.get("trigger_sleep_min", 0)
 trigger_sleep_max = config.get("trigger_sleep_max", 0)
 allowed_command_user_ids = config["allowed_command_user_ids"]
 
-triggers = config["triggers"]
+triggers = config.get("triggers", [])
 default_audio_clip = config["default_audio_clip"]
 defeated_audio_clip = config["defeated_audio_clip"]
 
