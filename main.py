@@ -351,12 +351,12 @@ async def defeated():
 @bot.event
 async def on_ready():
     while True:
+        # Start the scheduler for a random time
+        await asyncio.sleep(random.randint(20 * MIN, 60 * MIN))
+
         # Don't start a random tour if this feature is disabled
         if not SETTINGS.random_tour_enabled:
             continue
-
-        # Start the scheduler for a random time
-        await asyncio.sleep(random.randint(20 * MIN, 60 * MIN))
 
         # Try to kick a user from a channel
         await start_a_tour(default_audio_clip)
