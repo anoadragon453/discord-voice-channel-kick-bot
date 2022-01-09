@@ -1,5 +1,7 @@
 # Discord Voice Channel Kick Bot
 
+## I am no longer updating or providing support for this repo.
+
 This bot will every so often join a random voice channel that it can see, play
 an audio file, and kick a random user from said voice channel. Then leaves the
 voice channel.
